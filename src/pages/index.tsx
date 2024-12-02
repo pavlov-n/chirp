@@ -45,6 +45,9 @@ const PostView = (props: PostWithUser) => {
 
 const Feed = () => {
   const { data, isLoading: postsLoading } = api.post.getAll.useQuery();
+  const { user } = useUser();
+
+  if (!user) return null;
 
   if (postsLoading)
     return (
@@ -65,7 +68,6 @@ const Feed = () => {
 };
 
 export default function Home() {
-  const { user } = useUser();
 
   api.post.getAll.useQuery();
 
@@ -76,8 +78,6 @@ export default function Home() {
     void ctx.post.getAll.invalidate();
   }});
   const [input, setInput] = useState("");
-
-  if (!user) return null;
 
   return (
     <>
