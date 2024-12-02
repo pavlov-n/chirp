@@ -3,5 +3,7 @@
 @tailwind utilities;
 
 body { 
-  @apply min-h-screen text-slate-200 bg-gradient-to-b from-[#2e026d] to-[#15162c]
+  @apply min-h-screen text-slate-200 bg-gradient-to-b from-[#2e026d] to-[#15162c];
+
+  overscroll-behavior: none;
 }

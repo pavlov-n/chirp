@@ -33,7 +33,7 @@ export const createTRPCContext = (_opts: CreateNextContextOptions) => {
   const user = getAuth(req); 
   return {
     db,
-    session: user,
+    userId: user.userId,
   };
 };
 
@@ -113,12 +113,12 @@ const timingMiddleware = t.middleware(async ({ next, path }) => {
 export const publicProcedure = t.procedure.use(timingMiddleware);
 
 const enforceUserIsAuthed = t.middleware(async ({ ctx, next }) => {
-  if (!ctx.session.userId) {
+  if (!ctx.userId) {
     throw new TRPCError({code: "UNAUTHORIZED", message: "Not authenticated"});
   }
 
-  return next({ctx: {session: ctx.session}});
+  return next({ctx: {userId: ctx.userId}});
 });
 
 
-export const privateProcedure = t.procedure.use(enforceUserIsAuthed);
+export const privateProcedure = t.procedure.use(enforceUserIsAuthed)
