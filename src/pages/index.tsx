@@ -14,6 +14,7 @@ import type { RouterOutputs } from "~/utils/api";
 import Image from "next/image";
 import LoadingSpinner from "~/components/loading";
 import { useState } from "react";
+import toast from "react-hot-toast";
 
 dayjs.extend(relativeTime);
 
@@ -68,15 +69,24 @@ const Feed = () => {
 };
 
 export default function Home() {
-
   api.post.getAll.useQuery();
 
   const ctx = api.useUtils();
 
-  const {mutate, isPending: isPosting} = api.post.create.useMutation({onSuccess: () => {
-    setInput("");
-    void ctx.post.getAll.invalidate();
-  }});
+  const { mutate, isPending: isPosting } = api.post.create.useMutation({
+    onSuccess: () => {
+      setInput("");
+      void ctx.post.getAll.invalidate();
+    },
+    onError: (e) => {
+      const errorMessage = e.data?.zodError?.fieldErrors.content;
+      if (errorMessage && errorMessage[0]) {
+        toast.error(errorMessage[0]);
+      } else {
+        toast.error("Failed to post(");
+      }
+    },
+  });
   const [input, setInput] = useState("");
 
   return (
@@ -92,18 +102,33 @@ export default function Home() {
             <SignedOut>
               <SignInButton />
             </SignedOut>
-              <SignedIn>
-                <UserButton />
-              </SignedIn>
+            <SignedIn>
+              <UserButton />
+            </SignedIn>
             <input
-              className="bg-transparent grow outline-none"
+              className="grow bg-transparent outline-none"
               placeholder="Emojies!<3"
               type="text"
               value={input}
               onChange={(e) => setInput(e.target.value)}
               disabled={isPosting}
+              onKeyDown={(e) => {
+                if (e.key === "Enter") {
+                  e.preventDefault();
+                  if (input !== "") {
+                    mutate({ content: input });
+                  }
+                }
+              }}
             />
-            <button onClick={() => mutate({content: input})}>POST</button>
+            {isPosting && (
+              <div className="size-8">
+                <LoadingSpinner circleSize={"size-10"} size={true} />
+              </div>
+            )}
+            {input !== "" && !isPosting && (
+              <button onClick={() => mutate({ content: input })}>POST</button>
+            )}
           </div>
           <Feed />
         </div>
