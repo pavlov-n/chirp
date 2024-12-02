@@ -73,7 +73,7 @@ export default function Home() {
 
   const {mutate, isPending: isPosting} = api.post.create.useMutation({onSuccess: () => {
     setInput("");
-    ctx.post.getAll.invalidate();
+    void ctx.post.getAll.invalidate();
   }});
   const [input, setInput] = useState("");
 
