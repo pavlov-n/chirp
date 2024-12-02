@@ -13,6 +13,7 @@ import { api } from "~/utils/api";
 import type { RouterOutputs } from "~/utils/api";
 import Image from "next/image";
 import LoadingSpinner from "~/components/loading";
+import { useState } from "react";
 
 dayjs.extend(relativeTime);
 
@@ -64,11 +65,19 @@ const Feed = () => {
 };
 
 export default function Home() {
-  const { isLoaded: userLoaded } = useUser();
+  const { user } = useUser();
 
   api.post.getAll.useQuery();
 
-  if (!userLoaded) return <div />;
+  const ctx = api.useUtils();
+
+  const {mutate, isPending: isPosting} = api.post.create.useMutation({onSuccess: () => {
+    setInput("");
+    ctx.post.getAll.invalidate();
+  }});
+  const [input, setInput] = useState("");
+
+  if (!user) return null;
 
   return (
     <>
@@ -83,13 +92,18 @@ export default function Home() {
             <SignedOut>
               <SignInButton />
             </SignedOut>
-            <SignedIn>
-              <UserButton />
-            </SignedIn>
+              <SignedIn>
+                <UserButton />
+              </SignedIn>
             <input
-              className="bg-inherit outline-none"
+              className="bg-transparent grow outline-none"
               placeholder="Emojies!<3"
+              type="text"
+              value={input}
+              onChange={(e) => setInput(e.target.value)}
+              disabled={isPosting}
             />
+            <button onClick={() => mutate({content: input})}>POST</button>
           </div>
           <Feed />
         </div>
