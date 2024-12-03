@@ -8,6 +8,25 @@ import { api } from "~/utils/api";
 import LoadingSpinner from "~/components/loading";
 import { PageLayout } from "~/components/layout";
 import Image from "next/image";
+import Feed from "~/components/Feed";
+
+const ProfileFeed = (props: { userId: string }) => {
+  const { data, isLoading } = api.post.getPostByUserId.useQuery({
+    userId: props.userId,
+  });
+
+  if (isLoading)
+    return (
+      <div className="absolute left-0 top-0 flex h-screen w-screen items-center justify-center">
+        <LoadingSpinner />
+      </div>
+    );
+  if (!data || data.length === 0) return <div>User has not posted</div>;
+
+  return <ul className="">
+
+  </ul>
+};
 
 const ProfilePage: NextPage<{ username: string }> = ({ username }) => {
   const { data, isLoading } = api.profile.getUserByUserName.useQuery({
@@ -33,7 +52,7 @@ const ProfilePage: NextPage<{ username: string }> = ({ username }) => {
       <PageLayout>
         <div className="relative flex h-36 w-full items-center gap-3 border-b bg-gradient-to-bl from-[#2e026d] to-[#15162c] px-4 text-sm">
           <Image
-            className="absolute bottom-0 left-0 -mb-[64px] ml-4 rounded-full border-2 border-black"
+            className="absolute bottom-0 left-0 -mb-[64px] ml-4 rounded-full shadow-lg shadow-gray-400"
             src={data.profilePicture}
             alt="profile picture"
             width={128}
@@ -42,6 +61,7 @@ const ProfilePage: NextPage<{ username: string }> = ({ username }) => {
         </div>
         <div className="h-[64px]"></div>
         <div className="p-4 text-2xl font-bold">{`@${data.username ?? ""}`}</div>
+        <Feed />
       </PageLayout>
     </>
   );

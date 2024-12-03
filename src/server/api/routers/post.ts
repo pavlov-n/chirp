@@ -10,6 +10,38 @@ import { TRPCError } from "@trpc/server";
 import { Ratelimit } from "@upstash/ratelimit";
 import { Redis } from "@upstash/redis";
 import { filterUserForClient } from "~/server/helpers/filterUserForClient";
+import type { Post } from "@prisma/client";
+
+const addUserDataToPosts = async (posts: Post[]) => {
+  const users = await (
+    await clerkClient()
+  ).users.getUserList({
+    userId: posts.map((post) => post.authorId),
+    limit: 100,
+  });
+  const filteredUsers = users.data.map(filterUserForClient);
+
+  return posts.map((post) => {
+    const author = filteredUsers.find((user) => user.id === post.authorId);
+
+    if (!author)
+      throw new TRPCError({
+        message: "No author",
+        code: "INTERNAL_SERVER_ERROR",
+      });
+    if (!author.username)
+      throw new TRPCError({
+        message: "No author",
+        code: "INTERNAL_SERVER_ERROR",
+      });
+
+    return {
+      post,
+      author,
+    };
+  });
+  
+} 
 
 const ratelimit = new Ratelimit({
   redis: Redis.fromEnv(),
@@ -18,41 +50,13 @@ const ratelimit = new Ratelimit({
   prefix: "@upstash/ratelimit",
 });
 
-
-
 export const postRouter = createTRPCRouter({
   getAll: publicProcedure.query(async ({ ctx }) => {
     const posts = await ctx.db.post.findMany({
       take: 100,
       orderBy: [{ createdAt: "desc" }],
     });
-    const users = await (
-      await clerkClient()
-    ).users.getUserList({
-      userId: posts.map((post) => post.authorId),
-      limit: 100,
-    });
-    const filteredUsers = users.data.map(filterUserForClient);
-
-    return posts.map((post) => {
-      const author = filteredUsers.find((user) => user.id === post.authorId);
-
-      if (!author)
-        throw new TRPCError({
-          message: "No author",
-          code: "INTERNAL_SERVER_ERROR",
-        });
-      if (!author.username)
-        throw new TRPCError({
-          message: "No author",
-          code: "INTERNAL_SERVER_ERROR",
-        });
-
-      return {
-        post,
-        author,
-      };
-    });
+    return addUserDataToPosts(posts);
   }),
 
   create: privateProcedure
@@ -76,4 +80,20 @@ export const postRouter = createTRPCRouter({
       });
       return post;
     }),
+
+  getPostByUserId: publicProcedure
+    .input(
+      z.object({
+        userId: z.string(),
+      }),
+    )
+    .query(({ ctx, input }) =>
+      ctx.db.post.findMany({
+        where: {
+          authorId: input.userId,
+        },
+        take: 100,
+        orderBy: [{createdAt: "desc"}],
+      }).then(addUserDataToPosts)
+    ),
 });
