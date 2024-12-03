@@ -23,7 +23,6 @@ const addUserDataToPosts = async (posts: Post[]) => {
 
   return posts.map((post) => {
     const author = filteredUsers.find((user) => user.id === post.authorId);
-
     if (!author)
       throw new TRPCError({
         message: "No author",
@@ -40,8 +39,7 @@ const addUserDataToPosts = async (posts: Post[]) => {
       author,
     };
   });
-  
-} 
+};
 
 const ratelimit = new Ratelimit({
   redis: Redis.fromEnv(),
@@ -51,6 +49,16 @@ const ratelimit = new Ratelimit({
 });
 
 export const postRouter = createTRPCRouter({
+  getById: publicProcedure
+    .input(z.object({ id: z.string() }))
+    .query(async ({ ctx, input }) => {
+      const post = await ctx.db.post.findUnique({ where: { id: input.id } });
+      
+      if (!post) throw new TRPCError({ code: "NOT_FOUND" });
+
+      return (await addUserDataToPosts([post]))[0];
+    }),
+
   getAll: publicProcedure.query(async ({ ctx }) => {
     const posts = await ctx.db.post.findMany({
       take: 100,
@@ -88,12 +96,14 @@ export const postRouter = createTRPCRouter({
       }),
     )
     .query(({ ctx, input }) =>
-      ctx.db.post.findMany({
-        where: {
-          authorId: input.userId,
-        },
-        take: 100,
-        orderBy: [{createdAt: "desc"}],
-      }).then(addUserDataToPosts)
+      ctx.db.post
+        .findMany({
+          where: {
+            authorId: input.userId,
+          },
+          take: 100,
+          orderBy: [{ createdAt: "desc" }],
+        })
+        .then(addUserDataToPosts),
     ),
 });

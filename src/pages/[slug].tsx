@@ -9,6 +9,7 @@ import LoadingSpinner from "~/components/loading";
 import { PageLayout } from "~/components/layout";
 import Image from "next/image";
 import Feed from "~/components/Feed";
+import { generateSSGHelper } from "~/server/helpers/ssgHelper";
 
 const ProfileFeed = (props: { userId: string }) => {
   const { data, isLoading } = api.post.getPostByUserId.useQuery({
@@ -70,11 +71,7 @@ const ProfilePage: NextPage<{ username: string }> = ({ username }) => {
 // import { createSSGHelpers } from '@trpc';
 
 export const getStaticProps: GetStaticProps = async (context) => {
-  const ssg = createServerSideHelpers({
-    router: appRouter,
-    ctx: { db, userId: null },
-    transformer: superjson, // optional - adds superjson serialization
-  });
+  const ssg = generateSSGHelper(); 
 
   const slug = context.params?.slug;
 
